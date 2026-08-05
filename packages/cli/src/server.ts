@@ -1,7 +1,7 @@
 import http from 'http';
 
 import chalk from 'chalk';
-import { WebSocketServer } from 'ws';
+import { WebSocketServer, type WebSocket } from 'ws';
 import type { LogMessage, ReportEvent, SingleResult, TestReport } from 'react-native-cavynext';
 
 import constructJSON from './jsonFormatter';
@@ -49,6 +49,10 @@ export default class ReportServer {
 
   private testCount = 0;
   private keepAliveTimeout?: NodeJS.Timeout;
+  // Internal: The app connection currently reporting. Only one app may report
+  // at a time; otherwise a stale app instance (e.g. an old browser tab in a
+  // `run-web` session) would pollute the results of the current run.
+  private activeSocket?: WebSocket;
 
   constructor(options: ReportServerOptions = {}) {
     this.options = options;
@@ -56,6 +60,23 @@ export default class ReportServer {
     this.wss = new WebSocketServer({ server: this.server });
 
     this.wss.on('connection', (socket) => {
+      if (this.activeSocket) {
+        console.log(
+          chalk.yellow(
+            'cavynext: ignoring an extra app connection - another app instance ' +
+              'is already reporting. Close stale app instances (e.g. old browser tabs).',
+          ),
+        );
+        socket.close();
+        return;
+      }
+
+      this.activeSocket = socket;
+      socket.on('close', () => {
+        if (this.activeSocket === socket) {
+          this.activeSocket = undefined;
+        }
+      });
       socket.on('message', (raw) => {
         this.handleEvent(JSON.parse(raw.toString()) as ReportEvent);
       });
@@ -69,8 +90,10 @@ export default class ReportServer {
   // Public: Start listening. `onListening` runs once the port is bound.
   listen(port: number, onListening: () => void): void {
     // Without this, a port clash surfaces as an unhandled 'error' event and a
-    // raw stack trace, which tells the user nothing actionable.
-    this.server.on('error', (error: NodeJS.ErrnoException) => {
+    // raw stack trace, which tells the user nothing actionable. The handler is
+    // attached to both servers because `ws` re-emits errors from the
+    // underlying HTTP server on the WebSocketServer.
+    const onError = (error: NodeJS.ErrnoException) => {
       if (error.code === 'EADDRINUSE') {
         console.log(
           chalk.red(
@@ -82,7 +105,9 @@ export default class ReportServer {
       }
       console.log(chalk.red(`cavynext: report server error: ${error.message}`));
       process.exit(1);
-    });
+    };
+    this.server.on('error', onError);
+    this.wss.on('error', onError);
 
     this.server.listen(port, onListening);
   }
