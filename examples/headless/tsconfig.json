@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react",
+    "lib": ["ES2019", "DOM"],
+    "noEmit": true,
+    // Resolve `react-native-cavynext` to the sibling package's source, so the
+    // example always exercises the current code rather than a stale build.
+    "paths": {
+      "react-native-cavynext": ["../../packages/core/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*", "specs/**/*"]
+}

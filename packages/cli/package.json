@@ -1,0 +1,40 @@
+{
+  "name": "react-native-cavynext-cli",
+  "version": "0.1.0",
+  "description": "Command line interface for react-native-cavynext, a React Native integration test framework.",
+  "bin": {
+    "cavynext": "./bin/cavynext.js"
+  },
+  "main": "lib/cli.js",
+  "types": "lib/cli.d.ts",
+  "files": [
+    "bin",
+    "lib",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "keywords": [
+    "react native",
+    "cli",
+    "integration tests",
+    "testing",
+    "e2e"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^12.1.0",
+    "react-native-cavynext": "^0.1.0",
+    "ws": "^8.18.0",
+    "xml2js": "^0.6.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.16.11",
+    "@types/ws": "^8.5.12",
+    "@types/xml2js": "^0.4.14",
+    "typescript": "^5.6.3"
+  }
+}

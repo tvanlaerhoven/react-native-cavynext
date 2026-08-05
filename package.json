@@ -1,0 +1,27 @@
+{
+  "name": "react-native-cavynext-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Monorepo for react-native-cavynext, a TypeScript integration test framework for React Native, and its CLI.",
+  "license": "MIT",
+  "workspaces": [
+    "packages/core",
+    "packages/cli",
+    "examples/headless"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "eslint .",
+    "format": "prettier --write \"{packages,examples}/*/{src,specs}/**/*.{ts,tsx}\"",
+    "clean": "rm -rf packages/*/lib packages/*/tsconfig.tsbuildinfo examples/*/tsconfig.tsbuildinfo"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.13.0",
+    "eslint": "^9.13.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.11.0"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "cavynext-rn-example",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A real React Native app wired up to react-native-cavynext, runnable on a simulator or device.",
+  "license": "MIT",
+  "scripts": {
+    "start": "react-native start",
+    "android": "react-native run-android",
+    "ios": "react-native run-ios",
+    "test:e2e": "cavynext run-ios",
+    "test:e2e:android": "cavynext run-android"
+  },
+  "dependencies": {
+    "react": "19.1.0",
+    "react-native": "0.81.4"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@react-native-community/cli": "^15.0.0",
+    "@react-native/babel-preset": "0.81.4",
+    "@react-native/metro-config": "0.81.4",
+    "@types/react": "^19.1.0",
+    "react-native-cavynext": "file:../../packages/core",
+    "react-native-cavynext-cli": "file:../../packages/cli",
+    "typescript": "^5.6.3"
+  }
+}

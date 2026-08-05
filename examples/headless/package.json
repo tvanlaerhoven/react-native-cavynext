@@ -1,0 +1,24 @@
+{
+  "name": "@react-native-cavynext/example-headless",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A headless example app, driven by react-native-cavynext specs without a simulator.",
+  "license": "MIT",
+  "scripts": {
+    "test": "jest",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "react-native-cavynext": "^0.1.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.13",
+    "@types/react": "^18.3.11",
+    "@types/react-test-renderer": "^18.3.0",
+    "jest": "^29.7.0",
+    "react": "^18.3.1",
+    "react-test-renderer": "^18.3.1",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.6.3"
+  }
+}

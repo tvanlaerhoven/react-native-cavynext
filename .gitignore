@@ -1,0 +1,21 @@
+# OSX
+.DS_Store
+
+# node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# build output
+lib/
+*.tsbuildinfo
+
+# test artefacts
+coverage/
+screenshots/
+cavynext_results.xml
+cavynext_results.md
+
+# editors
+.idea/
+.vscode/
