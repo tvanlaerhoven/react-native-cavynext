@@ -14,7 +14,10 @@ export default function constructMarkdown(
   console.log(`Writing results to ${filename}`);
 
   const rows = results.testCases
-    .map((result) => `|${result.description}|${result.passed ? '✅' : '❌'}|${result.time}s|`)
+    .map(
+      (result) =>
+        `|${result.description}|${result.skipped ? '⏭' : result.passed ? '✅' : '❌'}|${result.time}s|`,
+    )
     .join('\n');
 
   const data =

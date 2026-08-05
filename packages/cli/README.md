@@ -49,6 +49,7 @@ Available on every `run-*` command:
 | `-t, --boot-timeout <minutes>` | How long to wait for the app to boot. Defaults to `2`. |
 | `--xml` | Write JUnit XML to `cavynext_results.xml`. |
 | `--markdown` | Write a markdown summary to `cavynext_results.md`. |
+| `--json` | Write a JSON report to `cavynext_results.json`. |
 | `--screenshots` | Capture a screenshot after every test result. |
 
 Unknown options are forwarded to the React Native CLI, so this works:

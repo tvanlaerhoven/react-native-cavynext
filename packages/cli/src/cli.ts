@@ -11,6 +11,7 @@ interface CommandOptions {
   dev?: boolean;
   xml?: boolean;
   markdown?: boolean;
+  json?: boolean;
   screenshots?: boolean;
   bootTimeout?: number;
 }
@@ -50,6 +51,7 @@ function test(commandName: RunCommand, options: CommandOptions, command: Command
     dev: options.dev,
     xml: options.xml,
     markdown: options.markdown,
+    json: options.json,
     screenshots: options.screenshots,
     bootTimeout: options.bootTimeout,
     args: forwardedArgs(command),
@@ -72,6 +74,7 @@ function addCommonOptions(command: Command): Command {
     .option('-b, --buildCmd <cmd>', 'Custom command used to build and run the app')
     .option('--xml', 'Write test results to cavynext_results.xml')
     .option('--markdown', 'Write a markdown summary to cavynext_results.md')
+    .option('--json', 'Write test results to cavynext_results.json')
     .option('--screenshots', 'Capture a screenshot after every test result')
     .allowUnknownOption();
 }

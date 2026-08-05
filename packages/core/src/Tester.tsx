@@ -1,6 +1,6 @@
 import React, { Children, Component, type ReactNode } from 'react';
 
-import { createTestIDResolver } from './findByTestID';
+import { createSelectorResolver, createTestIDResolver } from './findByTestID';
 import TestHookStore from './TestHookStore';
 import TestRunner from './TestRunner';
 import TestScope from './TestScope';
@@ -123,14 +123,14 @@ export default class Tester extends Component<TesterProps, TesterState> implemen
 
     // Rooted at this component's own fiber, so only the app under test is
     // searched.
-    const resolveByTestID = useTestIDs
-      ? createTestIDResolver(() => (this as any)._reactInternals)
-      : undefined;
+    const getRootFiber = () => (this as any)._reactInternals;
+    const resolveByTestID = useTestIDs ? createTestIDResolver(getRootFiber) : undefined;
+    const resolveSelector = createSelectorResolver(getRootFiber);
 
     const testSuites: TestScope[] = [];
     // Iterate over each spec and create a new TestScope for each.
     for (const spec of specs) {
-      const scope = new TestScope(this.testHookStore, waitTime, resolveByTestID);
+      const scope = new TestScope(this.testHookStore, waitTime, resolveByTestID, resolveSelector);
       await spec(scope);
       testSuites.push(scope);
     }

@@ -2,6 +2,7 @@ import type TestScope from './TestScope';
 import type {
   Reporter,
   TestCase,
+  TestFn,
   TestHost,
   TestReport,
   TestResult,
@@ -58,13 +59,35 @@ export default class TestRunner {
     const start = new Date();
     console.log(`cavynext test suite started at ${start.toISOString()}.`);
 
+    // When any test is focused (fit/fdescribe), only focused tests run.
+    const hasFocused = this.testSuites.some((scope) =>
+      scope.testCases.some((testCase) => testCase.focused && !testCase.skipped),
+    );
+
     // Iterate through each suite...
     for (const scope of this.testSuites) {
       // ...and then through that suite's test cases.
-      for (const testCase of scope.testCases) {
-        if (this.shouldRun(testCase)) {
-          await this.runTest(scope, testCase);
+      const runnable = scope.testCases.filter((testCase) => this.shouldRun(testCase));
+      let ranAny = false;
+
+      for (const testCase of runnable) {
+        if (testCase.skipped || (hasFocused && !testCase.focused)) {
+          this.skipTest(testCase);
+          continue;
         }
+
+        // `beforeAll` runs immediately before the suite's first real test, so
+        // a fully skipped suite never pays its setup cost.
+        if (!ranAny && scope.beforeAllHook) {
+          await this.runSuiteHook(scope, scope.beforeAllHook, 'beforeAll');
+        }
+        ranAny = true;
+
+        await this.runTest(scope, testCase);
+      }
+
+      if (ranAny && scope.afterAllHook) {
+        await this.runSuiteHook(scope, scope.afterAllHook, 'afterAll');
       }
     }
 
@@ -99,6 +122,36 @@ export default class TestRunner {
     return testCase.tag !== null && this.filter.includes(testCase.tag);
   }
 
+  // Internal: Report a test case as skipped without running it.
+  private skipTest(test: TestCase): void {
+    const description = `${test.describeLabel}: ${test.label}`;
+    const message = `${description}  ⏭ (skipped)`;
+    console.log(message);
+
+    this.results.push({
+      describeLabel: test.describeLabel,
+      description,
+      message,
+      passed: true,
+      skipped: true,
+      time: 0,
+    });
+
+    this.sendSingleResult({ message, passed: true });
+  }
+
+  // Internal: Run a suite-level hook (`beforeAll`/`afterAll`), reporting any
+  // error without aborting the whole run.
+  private async runSuiteHook(scope: TestScope, hook: TestFn, name: string): Promise<void> {
+    try {
+      await hook.call(scope);
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      console.warn(`cavynext: ${name} hook failed: ${errorMessage}`);
+      this.errorCount += 1;
+    }
+  }
+
   // Internal: Synchronously runs a single test case, logging whether it passed
   // and adding to the results array for reporting purposes.
   //
@@ -127,6 +180,11 @@ export default class TestRunner {
       }
 
       await f.call(scope);
+
+      // A failing `afterEach` fails the test it follows.
+      if (scope.afterEachHook) {
+        await scope.afterEachHook.call(scope);
+      }
       const time = this.elapsed(start);
 
       const successMsg = `${description}  ✅`;

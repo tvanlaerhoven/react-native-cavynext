@@ -6,9 +6,17 @@
 
 import Tester, { TesterContext, type TesterProps } from './Tester';
 import TestHookStore from './TestHookStore';
-import TestScope from './TestScope';
+import TestScope, { type WaitForOptions } from './TestScope';
 import TestRunner from './TestRunner';
 import WebSocketReporter, { type WebSocketReporterOptions } from './WebSocketReporter';
+import ComponentExpectation from './ComponentExpectation';
+import by, { type ComponentIdentifier, type Selector } from './by';
+import expect, {
+  AssertionError,
+  type AsyncMatchers,
+  type Expectation,
+  type Matchers,
+} from './expect';
 import hook, { type WithTestHook } from './hook';
 import useCavyNext from './useCavyNext';
 import wrap from './wrap';
@@ -41,15 +49,31 @@ export type {
   TestResult,
 } from './types';
 
-export type { GenerateTestHook, TestHookRef, TesterProps, WebSocketReporterOptions, WithTestHook };
+export type {
+  AsyncMatchers,
+  ComponentIdentifier,
+  Expectation,
+  GenerateTestHook,
+  Matchers,
+  Selector,
+  TestHookRef,
+  TesterProps,
+  WaitForOptions,
+  WebSocketReporterOptions,
+  WithTestHook,
+};
 
 export {
+  AssertionError,
+  ComponentExpectation,
   Tester,
   TesterContext,
   TestHookStore,
   TestRunner,
   TestScope,
   WebSocketReporter,
+  by,
+  expect,
   generateTestHook,
   hook,
   useCavyNext,
@@ -67,6 +91,8 @@ const Cavynext = {
   TestRunner,
   TestScope,
   WebSocketReporter,
+  by,
+  expect,
   generateTestHook,
   hook,
   useCavy: useCavyNext,

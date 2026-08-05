@@ -147,21 +147,46 @@ A spec is a function receiving a `TestScope`. Every helper returns a promise, so
 
 | Helper | Description |
 | --- | --- |
-| `describe(label, fn, tag?)` | Group test cases. An optional tag can be matched by the Tester's `only`. |
+| `describe(label, fn, tag?)` | Group test cases. May be nested. An optional tag can be matched by the Tester's `only`. |
 | `it(label, fn, tag?)` | Define a test case. Inherits its `describe` block's tag. |
-| `beforeEach(fn)` | Run something before every test case in the spec. |
+| `xdescribe` / `xit` | Skip a block or test; it is reported as skipped. |
+| `fdescribe` / `fit` | Focus a block or test; when anything is focused, only focused tests run. |
+| `beforeEach(fn)` / `afterEach(fn)` | Run something before/after every test case in the spec. Callable multiple times. |
+| `beforeAll(fn)` / `afterAll(fn)` | Run something once before the first / after the last test of the spec. |
+| `platform()` | The platform under test: `'ios'`, `'android'`, `'web'`, ... |
+
+### Selectors
+
+Every helper accepts either a test hook identifier (string) or a `by.*`
+selector:
+
+```ts
+import { by } from 'react-native-cavynext';
+
+await spec.press(by.id('LoginScreen.Button'));
+await spec.exists(by.text('Welcome back'));       // string or RegExp
+await spec.fillIn(by.label('Email address'), 'a@b.c');
+await spec.press(by.role('button'));
+```
 
 ### Actions
 
 | Helper | Description |
 | --- | --- |
-| `fillIn(id, str)` | Calls `onChangeText`. Also available as `changeText`. |
-| `press(id)` | Calls `onPress`. |
+| `fillIn(id, str)` | Calls `onChangeText`. Also available as `changeText` / `replaceText`. |
+| `typeText(id, str)` | Appends to the current `value`, then calls `onChangeText`. |
+| `clearText(id)` | Calls `onChangeText('')`. |
+| `press(id)` | Calls `onPress`. Also available as `tap`. |
+| `doublePress(id)` | Calls `onPress` twice. |
 | `longPress(id)` | Calls `onLongPress`. |
-| `focus(id)` | Calls `onFocus`. |
+| `focus(id)` / `blur(id)` | Calls `onFocus` / `onBlur`. |
+| `toggleSwitch(id)` | Calls `onValueChange` with the opposite of `value`. |
+| `setValue(id, value)` | Calls `onValueChange` with the value. |
 | `scrollTo(id, { x, y })` | Scrolls a `ScrollView`/`FlatList`, preferring its imperative `scrollTo`. |
+| `scrollToEnd(id)` | Scrolls to the end, preferring the imperative `scrollToEnd`. |
 | `pause(ms)` | Waits for a fixed time. |
-| `waitFor(predicate, timeout?)` | Polls until a condition holds. Rejects with a `TimeoutError`. |
+| `waitFor(predicate, opts?)` | Polls until a condition holds. `opts` is a timeout or `{ timeout, interval }`. |
+| `waitForElementToBeRemoved(id, opts?)` | Polls until the component disappears. |
 
 ### Assertions
 
@@ -172,9 +197,51 @@ A spec is a function receiving a `TestScope`. Every helper returns a promise, so
 | `expectVisible(id)` | Also fails if the component is hidden via `display: 'none'` or `opacity: 0`. |
 | `containsText(id, text)` | Checks the component's children contain `text`. |
 | `findComponent(id)` | Returns the hooked component itself, for anything custom. |
+| `expectComponent(id)` | Component-specific matchers - see below. |
+
+### `expect` - value matchers
+
+A Jest-style `expect` for plain values, with `.not`, `.resolves` and
+`.rejects`:
+
+```ts
+import { expect } from 'react-native-cavynext';
+
+expect(2 + 2).toBe(4);
+expect({ a: 1 }).toEqual({ a: 1 });
+expect([1, 2, 3]).toContain(2);
+expect('hello').toMatch(/^h/);
+expect(() => JSON.parse('nope')).toThrow();
+expect(value).not.toBeNull();
+await expect(fetchUser()).resolves.toHaveProperty('name');
+await expect(failingCall()).rejects.toBeInstanceOf(Error);
+```
+
+Matchers: `toBe`, `toEqual`, `toStrictEqual`, `toBeTruthy`, `toBeFalsy`,
+`toBeNull`, `toBeUndefined`, `toBeDefined`, `toBeNaN`, `toContain`,
+`toContainEqual`, `toHaveLength`, `toHaveProperty`, `toMatch`, `toMatchObject`,
+`toBeGreaterThan(OrEqual)`, `toBeLessThan(OrEqual)`, `toBeCloseTo`,
+`toBeInstanceOf`, `toThrow`.
+
+### `expectComponent` - component matchers
+
+Async matchers that wait for the component (up to `waitTime`) before
+asserting. All support `.not`:
+
+```ts
+await spec.expectComponent('Login.error').toBeVisible();
+await spec.expectComponent('Login.email').toHaveValue('a@b.c');
+await spec.expectComponent(by.text('Welcome')).toExist();
+await spec.expectComponent('Login.submit').not.toBeDisabled();
+```
+
+Matchers: `toExist`, `toBeVisible`, `toHaveText`, `toContainText`,
+`toHaveProp`, `toHaveValue`, `toBeEnabled`, `toBeDisabled`, `toBeChecked`,
+`toHaveStyle`, `toHaveAccessibilityLabel`.
 
 Errors are typed, so you can tell them apart: `ComponentNotFoundError`,
-`MissingPropError`, `UnwrappedComponentError`, `TimeoutError`.
+`MissingPropError`, `UnwrappedComponentError`, `TimeoutError`,
+`AssertionError`.
 
 ## Custom reporters
 

@@ -44,7 +44,7 @@ export type SpecFn = (spec: TestScope) => void | Promise<void>;
 // Internal: A single test case, built up by `describe`/`it` on the TestScope
 // and executed later by the TestRunner.
 export interface TestCase {
-  // The label of the surrounding `describe` block.
+  // The label of the surrounding `describe` block(s), joined when nested.
   describeLabel: string;
   // The label passed to `it`.
   label: string;
@@ -52,6 +52,12 @@ export interface TestCase {
   f: TestFn;
   // Optional tag used by the Tester's `only` filter.
   tag: string | null;
+  // True when the test was registered via `xit`/`xdescribe`; it is reported
+  // as skipped instead of run.
+  skipped?: boolean;
+  // True when the test was registered via `fit`/`fdescribe`; when any test is
+  // focused, only focused tests run.
+  focused?: boolean;
 }
 
 // Public: The result of running a single test case.
@@ -62,6 +68,9 @@ export interface TestResult {
   // Only present when the test failed.
   errorMessage?: string;
   passed: boolean;
+  // True when the test was skipped (via `xit`/`xdescribe`, or because other
+  // tests were focused).
+  skipped?: boolean;
   // Duration of the test case in seconds.
   time: number;
 }

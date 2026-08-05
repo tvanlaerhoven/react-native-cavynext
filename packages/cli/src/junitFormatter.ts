@@ -29,6 +29,10 @@ function formattedTestCase(test: TestResult) {
   if (test.errorMessage) {
     formattedTest.failure = formattedTestError(test);
   }
+  // Skipped tests get a nested skipped element, per the JUnit conventions.
+  if (test.skipped) {
+    formattedTest.skipped = {};
+  }
   return formattedTest;
 }
 
@@ -52,6 +56,7 @@ export default function constructXML(
         // object; the count comes from the test cases themselves.
         tests: results.testCases.length,
         failures: results.testCases.filter((test) => test.errorMessage).length,
+        skipped: results.testCases.filter((test) => test.skipped).length,
         // Errors are currently reported in the same way as failures.
         errors: 0,
         time: results.time,

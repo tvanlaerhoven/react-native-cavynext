@@ -1,3 +1,4 @@
+import { selectorPredicate, type Selector } from './by';
 import type { HookedComponent } from './types';
 
 // Internal: Find components by React Native's `testID` prop, so that an app can
@@ -49,6 +50,15 @@ export function currentRootFiber(fiber: FiberNode | undefined): FiberNode | unde
 // the Pressable itself, whose props include both `testID` and `onPress`, which
 // is what the spec helpers need.
 export function findFiberByTestID(root: FiberNode | undefined, testID: string): FiberNode | null {
+  return findFiberMatching(root, (props) => props.testID === testID);
+}
+
+// Internal: Depth-first search for the first fiber whose props satisfy the
+// given predicate. The outermost match wins.
+export function findFiberMatching(
+  root: FiberNode | undefined,
+  predicate: (props: Record<string, any>) => boolean,
+): FiberNode | null {
   if (!root) {
     return null;
   }
@@ -59,7 +69,7 @@ export function findFiberByTestID(root: FiberNode | undefined, testID: string): 
   let node: FiberNode | null | undefined = root.child;
 
   while (node) {
-    if (node.memoizedProps && node.memoizedProps.testID === testID) {
+    if (node.memoizedProps && predicate(node.memoizedProps)) {
       return node;
     }
 
@@ -123,6 +133,23 @@ export function createTestIDResolver(
     } catch {
       // Swallowed on purpose: this relies on React internals, and a lookup
       // failure must never be louder than the test failure it would cause.
+      return undefined;
+    }
+    return fiber ? hookedComponentFromFiber(fiber) : undefined;
+  };
+}
+
+// Internal: Build the selector resolver handed to a TestScope, used by the
+// `by.*` selectors.
+export function createSelectorResolver(
+  getRootFiber: () => FiberNode | undefined,
+): (selector: Selector) => HookedComponent | undefined {
+  return (selector: Selector) => {
+    let fiber: FiberNode | null = null;
+    try {
+      fiber = findFiberMatching(currentRootFiber(getRootFiber()), selectorPredicate(selector));
+    } catch {
+      // Swallowed on purpose, as above.
       return undefined;
     }
     return fiber ? hookedComponentFromFiber(fiber) : undefined;

@@ -4,6 +4,7 @@ import chalk from 'chalk';
 import { WebSocketServer } from 'ws';
 import type { LogMessage, ReportEvent, SingleResult, TestReport } from 'react-native-cavynext';
 
+import constructJSON from './jsonFormatter';
 import constructXML from './junitFormatter';
 import constructMarkdown from './markdownFormatter';
 import takeScreenshot, { type Platform } from './screenshot';
@@ -26,6 +27,8 @@ export interface ReportServerOptions {
   outputAsXml?: boolean;
   // Write a markdown summary when the run finishes.
   outputAsMarkdown?: boolean;
+  // Write a JSON report when the run finishes.
+  outputAsJson?: boolean;
   // Capture a screenshot after every test result.
   screenshots?: boolean;
 }
@@ -163,13 +166,18 @@ export default class ReportServer {
     clearTimeout(this.keepAliveTimeout);
 
     console.log(`Finished in ${duration} seconds`);
-    const endMsg = `${countString(results.length, 'example')}, ${countString(errorCount, 'failure')}`;
+    const skippedCount = results.filter((result) => result.skipped).length;
+    const skippedMsg = skippedCount ? `, ${countString(skippedCount, 'skipped test')}` : '';
+    const endMsg = `${countString(results.length, 'example')}, ${countString(errorCount, 'failure')}${skippedMsg}`;
 
     if (this.options.outputAsXml) {
       constructXML(fullResults);
     }
     if (this.options.outputAsMarkdown) {
       constructMarkdown(fullResults);
+    }
+    if (this.options.outputAsJson) {
+      constructJSON(fullResults);
     }
 
     console.log(errorCount ? chalk.red(endMsg) : chalk.green(endMsg));

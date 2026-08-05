@@ -36,6 +36,8 @@ export interface RunTestsOptions {
   xml?: boolean;
   // Write a markdown summary.
   markdown?: boolean;
+  // Write a JSON report.
+  json?: boolean;
   // Capture a screenshot after every test.
   screenshots?: boolean;
   // Minutes to wait for the app to boot.
@@ -119,6 +121,7 @@ function runServer(options: RunTestsOptions): void {
     dev: options.dev,
     outputAsXml: options.xml,
     outputAsMarkdown: options.markdown,
+    outputAsJson: options.json,
     screenshots: options.screenshots,
   });
 
