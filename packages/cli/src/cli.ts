@@ -24,7 +24,7 @@ interface CommandOptions {
 function forwardedArgs(command: Command): string[] {
   const allArgs = process.argv;
   const commandIndex = allArgs.indexOf(command.name());
-  const args = allArgs.slice(commandIndex);
+  const args = allArgs.slice(commandIndex + 1);
 
   for (const option of command.options) {
     for (let i = 0; i < args.length; i++) {
@@ -105,10 +105,7 @@ addCommonOptions(
 ).action((options: CommandOptions, command: Command) => test('run-android', options, command));
 
 addCommonOptions(program.command('run-web').description('Run specs on the web platform')).action(
-  (options: CommandOptions, command: Command) =>
-    // The web bundle is served by the app's own dev server, so there is never
-    // a native build step to run here.
-    test('run-web', { ...options, skipbuild: true }, command),
+  (options: CommandOptions, command: Command) => test('run-web', options, command),
 );
 
 addCommonOptions(program.command('run-vega').description('Run specs on the Vega platform')).action(

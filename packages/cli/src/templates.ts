@@ -3,7 +3,7 @@
 // Internal: The test entry point, which boots the app wrapped in a Tester.
 export function indexTestTemplate(specFolderName: string, appName = 'yourAppName'): string {
   return `import React from 'react';
-import { AppRegistry } from 'react-native';
+import { AppRegistry, Platform } from 'react-native';
 import { Tester, TestHookStore } from 'react-native-cavynext';
 
 import App from './App';
@@ -21,6 +21,12 @@ function AppWrapper() {
 }
 
 AppRegistry.registerComponent('${appName}', () => AppWrapper);
+
+if (Platform.OS === 'web') {
+  AppRegistry.runApplication('${appName}', {
+    rootTag: document.getElementById('root'),
+  });
+}
 `;
 }
 

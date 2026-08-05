@@ -73,7 +73,7 @@ export default class WebSocketReporter implements RealtimeReporter {
       // If the CLI is not running, let people know in a friendly way.
       console.log(
         'cavynext: skipping sending the test report - no CLI report server ' +
-          'detected. Run your app via `cavynext run-ios` / `run-android` to ' +
+          'detected. Run your app via `cavynext run-ios` / `run-android` / `run-web` to ' +
           'collect results.',
       );
     }

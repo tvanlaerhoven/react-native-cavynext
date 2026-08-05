@@ -1,4 +1,4 @@
-import { execFileSync, spawn } from 'child_process';
+import { execFileSync, spawn, type ChildProcess } from 'child_process';
 import { existsSync, renameSync } from 'fs';
 
 import ReportServer from './server';
@@ -14,6 +14,9 @@ const BOOT_TIMEOUT = 2;
 // Internal: Filename the real entry file is parked under while tests run.
 const BACKUP_ENTRY_FILE = 'index.notest.js';
 
+// Internal: Default build command used for react-native-web runs.
+const WEB_BUILD_CMD = 'npx webpack serve --mode development --open';
+
 // Public: The run commands the CLI supports.
 export type RunCommand = 'run-ios' | 'run-android' | 'run-web' | 'run-vega';
 
@@ -21,11 +24,11 @@ export type RunCommand = 'run-ios' | 'run-android' | 'run-web' | 'run-vega';
 export interface RunTestsOptions {
   // Which platform to run on.
   command: RunCommand;
-  // App entry file. Defaults to 'index.js'.
+  // App entry file. Defaults to 'index.js' (or 'index.web.js' for run-web).
   file?: string;
-  // Skip the React Native build step and just start the report server.
+  // Skip the build step and just start the report server.
   skipbuild?: boolean;
-  // A custom build command to run instead of `npx react-native <command>`.
+  // A custom command used to build and run the app.
   buildCmd?: string;
   // Keep the report server alive after the run finishes.
   dev?: boolean;
@@ -37,12 +40,16 @@ export interface RunTestsOptions {
   screenshots?: boolean;
   // Minutes to wait for the app to boot.
   bootTimeout?: number;
-  // Extra arguments forwarded to the React Native CLI.
+  // Extra arguments forwarded to the build command.
   args?: string[];
 }
 
 // Internal: Whether we swapped the entry files and therefore owe a teardown.
 let switched = false;
+
+// Internal: Long-running build process (e.g. a webpack dev server) that must be
+// cleaned up when cavynext exits.
+let childProcess: ChildProcess | undefined;
 
 // Internal: Converts minutes to milliseconds.
 function minsToMillisecs(mins: number): number {
@@ -143,8 +150,11 @@ function runServer(options: RunTestsOptions): void {
 // Public: Build the app if needed, then start the report server and wait for
 // results.
 export default function runTests(options: RunTestsOptions): void {
-  // Assume the entry file is 'index.js' if the user doesn't supply one.
-  const entryFile = options.file || 'index.js';
+  // The default entry file differs for web because react-native-web apps often
+  // use an `index.web.js` entry point.
+  const defaultEntryFile =
+    options.command === 'run-web' && existsSync('index.web.js') ? 'index.web.js' : 'index.js';
+  const entryFile = options.file || defaultEntryFile;
   const jsExtension = /\.js$/;
 
   if (!jsExtension.test(entryFile)) {
@@ -152,8 +162,11 @@ export default function runTests(options: RunTestsOptions): void {
     process.exit(1);
   }
 
-  // The test entry point sits alongside it as `index.test.js`.
-  const testEntryFile = entryFile.replace(jsExtension, '.test.js');
+  // The test entry point sits alongside it. For `index.web.js` we expect
+  // `index.test.web.js`; otherwise `index.test.js`.
+  const testEntryFile = entryFile.endsWith('.web.js')
+    ? entryFile.replace(/\.web\.js$/, '.test.web.js')
+    : entryFile.replace(jsExtension, '.test.js');
   const testEntryFileExists = existsSync(testEntryFile);
 
   // Warn and exit if the user named an entry file but has no test counterpart.
@@ -166,11 +179,13 @@ export default function runTests(options: RunTestsOptions): void {
     switchEntryFile(entryFile, testEntryFile);
   }
 
-  // Always restore the entry files, however we exit.
+  // Always restore the entry files and kill any long-running build process,
+  // however we exit.
   process.on('exit', () => {
     if (switched) {
       teardown(entryFile, testEntryFile);
     }
+    childProcess?.kill();
   });
   process.on('SIGINT', () => {
     console.log('cavynext: received SIGINT, cleaning up');
@@ -183,23 +198,42 @@ export default function runTests(options: RunTestsOptions): void {
   }
 
   // Build the app first, then start the server and wait for results.
-  const rn = options.buildCmd
-    ? spawn(options.buildCmd, { stdio: 'inherit', shell: true })
-    : spawn('npx', ['react-native', options.command, ...(options.args ?? [])], {
-        stdio: 'inherit',
-        shell: true,
-      });
-
-  console.log(
-    `cavynext: running \`${options.buildCmd ?? `npx react-native ${options.command}`}\`...`,
-  );
-
-  rn.on('close', (code) => {
-    console.log(`cavynext: the build exited with code ${code}.`);
-    // Quit if the build went wrong; there is no app to test.
-    if (code) {
-      process.exit(code);
-    }
+  if (options.command === 'run-web') {
+    // For react-native-web, the build step is a long-running dev server. Start
+    // it in the background and launch the report server straight away; the boot
+    // timeout will catch a server that fails to serve the app.
+    const command = options.buildCmd ?? WEB_BUILD_CMD;
+    childProcess = spawn(command, { stdio: 'inherit', shell: true });
+    console.log(`cavynext: running \`${command}\`...`);
     runServer(options);
-  });
+  } else if (options.buildCmd) {
+    childProcess = spawn(options.buildCmd, { stdio: 'inherit', shell: true });
+    console.log(`cavynext: running \`${options.buildCmd}\`...`);
+    childProcess.on('close', (code) => {
+      console.log(`cavynext: the build exited with code ${code}.`);
+      if (code) {
+        process.exit(code);
+      }
+      runServer(options);
+    });
+  } else {
+    const rnArgs = ['react-native', options.command, ...(options.args ?? [])];
+    childProcess = spawn('npx', rnArgs, { stdio: 'inherit', shell: true });
+    console.log(`cavynext: running \`npx ${rnArgs.join(' ')}\`...`);
+    childProcess.on('close', (code) => {
+      console.log(`cavynext: the build exited with code ${code}.`);
+      if (code) {
+        process.exit(code);
+      }
+      runServer(options);
+    });
+  }
+
+  if (childProcess) {
+    childProcess.on('error', (error) => {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`cavynext: could not start the build process: ${message}`);
+      process.exit(1);
+    });
+  }
 }
