@@ -21,6 +21,47 @@ function scopeWith(
 }
 
 describe('TestScope structure', () => {
+  it('collects test cases with their describe label', () => {
+    const { scope } = scopeWith({});
+    const body = async () => {};
+
+    scope.describe('My Scene', () => {
+      scope.it('has a component', body);
+    });
+
+    expect(scope.testCases).toHaveLength(1);
+    expect(scope.testCases[0]).toMatchObject({
+      describeLabel: 'My Scene',
+      label: 'has a component',
+      f: body,
+      tag: null,
+    });
+  });
+
+  it('inherits the tag from the describe block', () => {
+    const { scope } = scopeWith({});
+
+    scope.describe(
+      'Tagged scene',
+      () => {
+        scope.it('runs', async () => {});
+      },
+      'focus',
+    );
+
+    expect(scope.testCases[0].tag).toBe('focus');
+  });
+
+  it('falls back to the tag given to `it`', () => {
+    const { scope } = scopeWith({});
+
+    scope.describe('Scene', () => {
+      scope.it('runs', async () => {}, 'smoke');
+    });
+
+    expect(scope.testCases[0].tag).toBe('smoke');
+  });
+
   it('supports nested describe blocks', () => {
     const { scope } = scopeWith({});
     scope.describe('Outer', () => {
@@ -87,6 +128,31 @@ describe('TestScope structure', () => {
   });
 });
 
+describe('TestScope lookup', () => {
+  it('resolves with a component that is already hooked', async () => {
+    const component = { props: {} };
+    const { scope } = scopeWith({ 'Scene.button': component });
+
+    await expect(scope.findComponent('Scene.button')).resolves.toBe(component);
+  });
+
+  it('resolves with a component that appears later', async () => {
+    const { scope, store } = scopeWith({});
+    const component = { props: {} };
+    setTimeout(() => store.add('Scene.late', component), 150);
+
+    await expect(scope.findComponent('Scene.late')).resolves.toBe(component);
+  });
+
+  it('rejects with a ComponentNotFoundError after the wait time', async () => {
+    const { scope } = scopeWith({});
+
+    await expect(scope.findComponent('Scene.missing')).rejects.toMatchObject({
+      name: 'ComponentNotFoundError',
+    });
+  });
+});
+
 describe('TestScope selectors', () => {
   it('resolves by.id through the hook store first', async () => {
     const component = { props: { onPress: jest.fn() } };
@@ -111,6 +177,77 @@ describe('TestScope selectors', () => {
 });
 
 describe('TestScope interactions', () => {
+  it('fillIn calls onChangeText', async () => {
+    const onChangeText = jest.fn();
+    const { scope } = scopeWith({ 'Scene.input': { props: { onChangeText } } });
+
+    await scope.fillIn('Scene.input', 'Amy');
+
+    expect(onChangeText).toHaveBeenCalledWith('Amy');
+  });
+
+  it('changeText is an alias of fillIn', async () => {
+    const onChangeText = jest.fn();
+    const { scope } = scopeWith({ 'Scene.input': { props: { onChangeText } } });
+
+    await scope.changeText('Scene.input', 'Amy');
+
+    expect(onChangeText).toHaveBeenCalledWith('Amy');
+  });
+
+  it('press calls onPress', async () => {
+    const onPress = jest.fn();
+    const { scope } = scopeWith({ 'Scene.button': { props: { onPress } } });
+
+    await scope.press('Scene.button');
+
+    expect(onPress).toHaveBeenCalled();
+  });
+
+  it('longPress calls onLongPress', async () => {
+    const onLongPress = jest.fn();
+    const { scope } = scopeWith({ 'Scene.button': { props: { onLongPress } } });
+
+    await scope.longPress('Scene.button');
+
+    expect(onLongPress).toHaveBeenCalled();
+  });
+
+  it('focus calls onFocus', async () => {
+    const onFocus = jest.fn();
+    const { scope } = scopeWith({ 'Scene.input': { props: { onFocus } } });
+
+    await scope.focus('Scene.input');
+
+    expect(onFocus).toHaveBeenCalled();
+  });
+
+  it('throws a MissingPropError when the component lacks the prop', async () => {
+    const { scope } = scopeWith({ 'Scene.button': { props: {} } });
+
+    await expect(scope.press('Scene.button')).rejects.toMatchObject({
+      name: 'MissingPropError',
+    });
+  });
+
+  it('scrollTo prefers the imperative scrollTo method', async () => {
+    const scrollTo = jest.fn();
+    const { scope } = scopeWith({ 'Scene.list': { props: {}, scrollTo } });
+
+    await scope.scrollTo('Scene.list', { y: 120 });
+
+    expect(scrollTo).toHaveBeenCalledWith({ x: 0, y: 120, animated: false });
+  });
+
+  it('scrollTo falls back to a synthetic onScroll event', async () => {
+    const onScroll = jest.fn();
+    const { scope } = scopeWith({ 'Scene.list': { props: { onScroll } } });
+
+    await scope.scrollTo('Scene.list', { y: 80 });
+
+    expect(onScroll).toHaveBeenCalledWith({ nativeEvent: { contentOffset: { x: 0, y: 80 } } });
+  });
+
   it('tap is an alias of press', async () => {
     const onPress = jest.fn();
     const { scope } = scopeWith({ btn: { props: { onPress } } });
@@ -169,6 +306,24 @@ describe('TestScope interactions', () => {
 });
 
 describe('TestScope wait helpers', () => {
+  it('waitFor resolves once the predicate becomes true', async () => {
+    const { scope } = scopeWith({});
+    let ready = false;
+    setTimeout(() => {
+      ready = true;
+    }, 120);
+
+    await expect(scope.waitFor(() => ready)).resolves.toBeUndefined();
+  });
+
+  it('waitFor rejects with a TimeoutError', async () => {
+    const { scope } = scopeWith({});
+
+    await expect(scope.waitFor(() => false, 200)).rejects.toMatchObject({
+      name: 'TimeoutError',
+    });
+  });
+
   it('waitFor accepts an options object', async () => {
     const { scope } = scopeWith({});
     let ready = false;
@@ -189,6 +344,80 @@ describe('TestScope wait helpers', () => {
     await expect(
       scope.waitForElementToBeRemoved('stays', { timeout: 100, interval: 10 }),
     ).rejects.toThrow('to be removed');
+  });
+});
+
+describe('TestScope assertions', () => {
+  it('exists resolves true for a hooked component', async () => {
+    const { scope } = scopeWith({ 'Scene.button': { props: {} } });
+
+    await expect(scope.exists('Scene.button')).resolves.toBe(true);
+  });
+
+  it('notExists resolves true when the component is absent', async () => {
+    const { scope } = scopeWith({});
+
+    await expect(scope.notExists('Scene.missing')).resolves.toBe(true);
+  });
+
+  it('notExists rejects when the component is present', async () => {
+    const { scope } = scopeWith({ 'Scene.button': { props: {} } });
+
+    await expect(scope.notExists('Scene.button')).rejects.toThrow(/was present/);
+  });
+
+  it('containsText passes for a string child', async () => {
+    const { scope } = scopeWith({ 'Scene.title': { props: { children: 'Hello Amy' } } });
+
+    await expect(scope.containsText('Scene.title', 'Amy')).resolves.toBeUndefined();
+  });
+
+  it('containsText passes for array children', async () => {
+    const { scope } = scopeWith({ 'Scene.title': { props: { children: ['Hello ', 'Amy'] } } });
+
+    await expect(scope.containsText('Scene.title', 'Amy')).resolves.toBeUndefined();
+  });
+
+  it('containsText passes for numeric children', async () => {
+    const { scope } = scopeWith({ 'Scene.count': { props: { children: 42 } } });
+
+    await expect(scope.containsText('Scene.count', '42')).resolves.toBeUndefined();
+  });
+
+  it('containsText rejects when the text is missing', async () => {
+    const { scope } = scopeWith({ 'Scene.title': { props: { children: 'Hello Jim' } } });
+
+    await expect(scope.containsText('Scene.title', 'Amy')).rejects.toThrow(/Could not find text/);
+  });
+
+  it('containsText rejects with UnwrappedComponentError when props are absent', async () => {
+    const { scope } = scopeWith({ 'Scene.title': {} });
+
+    await expect(scope.containsText('Scene.title', 'Amy')).rejects.toMatchObject({
+      name: 'UnwrappedComponentError',
+    });
+  });
+
+  it('expectVisible passes for a styled but visible component', async () => {
+    const { scope } = scopeWith({
+      'Scene.box': { props: { style: [{ flex: 1 }, { opacity: 1 }] } },
+    });
+
+    await expect(scope.expectVisible('Scene.box')).resolves.toBe(true);
+  });
+
+  it('expectVisible rejects for display none', async () => {
+    const { scope } = scopeWith({ 'Scene.box': { props: { style: { display: 'none' } } } });
+
+    await expect(scope.expectVisible('Scene.box')).rejects.toThrow(/display/);
+  });
+
+  it('expectVisible rejects for zero opacity in a style array', async () => {
+    const { scope } = scopeWith({
+      'Scene.box': { props: { style: [{ opacity: 1 }, { opacity: 0 }] } },
+    });
+
+    await expect(scope.expectVisible('Scene.box')).rejects.toThrow(/opacity/);
   });
 });
 
