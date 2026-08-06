@@ -9,6 +9,15 @@ This is a TypeScript rewrite of Cavy and cavy-cli, kept deliberately
 API-compatible. **Coming from Cavy? See [MIGRATION.md](./MIGRATION.md)** — in
 most projects it is a dependency swap and a find-and-replace of the import path.
 
+Beyond Cavy compatibility it adds:
+
+- **`testID` lookups** — test an app without adding any cavynext code to its components.
+- **A Jest-style `expect`** with 22 matchers, `.not`, `.resolves`/`.rejects`, plus async component matchers via `spec.expectComponent(...)`.
+- **`by.*` selectors** — find components by text, accessibility label or role.
+- **Modern lifecycle** — nested `describe`, `beforeAll`/`afterAll`/`afterEach`, `xit`/`fit`, and conditional `describeIf`/`itIf` for platform-specific suites.
+- **Web support** — run the same specs against react-native-web with `cavynext run-web`.
+- **Reports** — JUnit XML, markdown and JSON, with skipped tests marked.
+
 ## Packages
 
 | Package | Description |
@@ -57,14 +66,15 @@ styles work, specs look identical, and hooks win over a matching `testID`. See
 
 ```ts
 // specs/LoginSpec.ts
-import type { SpecFn } from 'react-native-cavynext';
+import { by, expect, type SpecFn } from 'react-native-cavynext';
 
 const spec: SpecFn = (spec) => {
   spec.describe('Logging in', () => {
     spec.it('works', async () => {
       await spec.fillIn('LoginScreen.EmailInput', 'test@example.com');
       await spec.press('LoginScreen.Button');
-      await spec.exists('WelcomeScreen');
+      await spec.expectComponent(by.text('Welcome back')).toBeVisible();
+      expect(2 + 2).toBe(4);
     });
   });
 };
@@ -103,11 +113,13 @@ and waits for results:
 ```bash
 npx cavynext run-ios
 npx cavynext run-android
+npx cavynext run-web       # react-native-web, via a webpack dev server
 ```
 
 The command exits `0` when everything passed, `42` when tests failed, and `1`
 when something went wrong (build failure, app crash, port already in use), so CI
-can tell a test failure apart from a broken build.
+can tell a test failure apart from a broken build. Add `--xml`, `--markdown` or
+`--json` for report files.
 
 ## Examples
 
