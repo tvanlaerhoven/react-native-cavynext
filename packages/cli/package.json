@@ -24,6 +24,16 @@
     "testing",
     "e2e"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tvanlaerhoven/react-native-cavynext.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/tvanlaerhoven/react-native-cavynext#readme",
+  "bugs": {
+    "url": "https://github.com/tvanlaerhoven/react-native-cavynext/issues"
+  },
+  "author": "Tim Van Laerhoven",
   "license": "MIT",
   "dependencies": {
     "chalk": "^4.1.2",

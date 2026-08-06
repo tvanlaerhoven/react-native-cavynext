@@ -25,6 +25,16 @@
     "e2e",
     "specs"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tvanlaerhoven/react-native-cavynext.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/tvanlaerhoven/react-native-cavynext#readme",
+  "bugs": {
+    "url": "https://github.com/tvanlaerhoven/react-native-cavynext/issues"
+  },
+  "author": "Tim Van Laerhoven",
   "license": "MIT",
   "peerDependencies": {
     "react": ">=16.8.0",

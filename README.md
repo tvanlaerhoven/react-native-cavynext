@@ -143,6 +143,20 @@ node packages/cli/bin/cavynext.js run-web --xml --markdown
 node packages/cli/scripts/fakeApp.js --fail
 ```
 
+## Releasing
+
+Releases are managed with [changesets](https://github.com/changesets/changesets):
+
+1. In your feature PR, run `npx changeset` and describe the change; commit the
+   generated file under `.changeset/`.
+2. On merge to `main`, the release workflow opens (or updates) a
+   "Version Packages" PR that bumps versions and changelogs.
+3. Merging that PR publishes the bumped packages to npm.
+
+The workflow needs an `NPM_TOKEN` repository secret holding an npm automation
+token with publish rights. `react-native-cavynext` and
+`react-native-cavynext-cli` are versioned together (linked).
+
 ## License
 
 MIT
