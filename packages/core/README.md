@@ -151,6 +151,7 @@ A spec is a function receiving a `TestScope`. Every helper returns a promise, so
 | `it(label, fn, tag?)` | Define a test case. Inherits its `describe` block's tag. |
 | `xdescribe` / `xit` | Skip a block or test; it is reported as skipped. |
 | `fdescribe` / `fit` | Focus a block or test; when anything is focused, only focused tests run. |
+| `describeIf(cond, ...)` / `itIf(cond, ...)` | Run only when the condition holds, e.g. `spec.describeIf(spec.platform() !== 'web', ...)`; otherwise reported as skipped. |
 | `beforeEach(fn)` / `afterEach(fn)` | Run something before/after every test case in the spec. Callable multiple times. |
 | `beforeAll(fn)` / `afterAll(fn)` | Run something once before the first / after the last test of the spec. |
 | `platform()` | The platform under test: `'ios'`, `'android'`, `'web'`, ... |

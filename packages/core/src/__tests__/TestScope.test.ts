@@ -87,6 +87,19 @@ describe('TestScope structure', () => {
     expect(scope.testCases.map((t) => !!t.skipped)).toEqual([true, false, true]);
   });
 
+  it('describeIf and itIf skip when the condition is false', () => {
+    const { scope } = scopeWith({});
+    scope.describeIf(false, 'Skipped group', () => {
+      scope.it('inherits skip', async () => {});
+    });
+    scope.describeIf(true, 'Running group', () => {
+      scope.itIf(false, 'skipped test', async () => {});
+      scope.itIf(true, 'running test', async () => {});
+    });
+
+    expect(scope.testCases.map((t) => !!t.skipped)).toEqual([true, true, false]);
+  });
+
   it('marks tests from fit and fdescribe as focused', () => {
     const { scope } = scopeWith({});
     scope.describe('Group', () => {

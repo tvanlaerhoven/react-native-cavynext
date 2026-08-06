@@ -104,6 +104,16 @@ export default class TestScope {
     this.pushDescribe(label, 'focus', tag, f);
   }
 
+  // Public: Run a `describe` block only when the condition holds; otherwise
+  // its tests are reported as skipped.
+  //
+  // Example
+  //
+  //   spec.describeIf(spec.platform() !== 'web', 'Fullscreen', () => { ... });
+  describeIf(condition: boolean, label: string, f: () => void, tag: string | null = null): void {
+    this.pushDescribe(label, condition ? 'normal' : 'skip', tag, f);
+  }
+
   // Internal: Run a describe body with its label/mode/tag pushed on the
   // stacks.
   private pushDescribe(
@@ -147,6 +157,16 @@ export default class TestScope {
   // run.
   fit(label: string, f: TestFn, testTag: string | null = null): void {
     this.pushTest(label, f, testTag, 'focus');
+  }
+
+  // Public: Run a test case only when the condition holds; otherwise it is
+  // reported as skipped.
+  //
+  // Example
+  //
+  //   spec.itIf(spec.platform() === 'android', 'uses SurfaceView', async () => { ... });
+  itIf(condition: boolean, label: string, f: TestFn, testTag: string | null = null): void {
+    this.pushTest(label, f, testTag, condition ? 'normal' : 'skip');
   }
 
   // Internal: Record a test case with the effective label, tag, and mode of
