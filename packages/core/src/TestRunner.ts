@@ -167,7 +167,9 @@ export default class TestRunner {
     const start = new Date();
 
     await this.host.clearStorage();
-    this.host.reRender();
+    // Awaited so the test only starts once the re-mount has committed; the
+    // hook store no longer contains components of the previous mount.
+    await this.host.reRender();
 
     const { describeLabel, label, f } = test;
     const description = `${describeLabel}: ${label}`;

@@ -143,8 +143,12 @@ export default class Tester extends Component<TesterProps, TesterState> implemen
   }
 
   // Internal: Re-mount the app under test so each test case starts fresh.
-  reRender(): void {
-    this.setState({ key: Math.random() });
+  // Resolves once React has committed the re-mount, so a test can never grab
+  // hooked components left over from the previous mount.
+  reRender(): Promise<void> {
+    return new Promise((resolve) => {
+      this.setState({ key: Math.random() }, resolve);
+    });
   }
 
   // Internal: Clear everything from the injected storage, warning if anything

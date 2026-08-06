@@ -161,5 +161,7 @@ export interface TestHost {
   // Clears persisted storage between test cases, if configured to do so.
   clearStorage(): Promise<void>;
   // Re-mounts the app under test so each test case starts from a clean tree.
-  reRender(): void;
+  // When a promise is returned, the runner waits for it before starting the
+  // test, so specs never observe components of the previous mount.
+  reRender(): void | Promise<void>;
 }
