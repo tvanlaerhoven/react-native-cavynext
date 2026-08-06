@@ -194,6 +194,10 @@ export default function runTests(options: RunTestsOptions): void {
     console.log('cavynext: received SIGINT, cleaning up');
     process.exit(1);
   });
+  process.on('SIGTERM', () => {
+    console.log('cavynext: received SIGTERM, cleaning up');
+    process.exit(1);
+  });
 
   if (options.skipbuild) {
     runServer(options);
